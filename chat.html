@@ -1,0 +1,603 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Socially — real conversations">
+  <title>Chat — Socially</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="shared-upgrade.css">
+  <style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap');
+:root{--bg:#0b0c10;--panel:#12141b;--panel2:#171a23;--line:#262a36;--text:#f4f5f8;--muted:#9298aa;--accent:#8b7cff;--accent2:#6c5ce7;--radius:18px}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font-family:'DM Sans',sans-serif;min-height:100vh}a{color:inherit;text-decoration:none}button,input,textarea{font:inherit}button{cursor:pointer}
+.topbar{height:76px;border-bottom:1px solid var(--line);background:rgba(11,12,16,.94);display:flex;align-items:center;gap:28px;padding:0 4vw;position:sticky;top:0;z-index:10;backdrop-filter:blur(15px)}
+.brand{display:flex;align-items:center;gap:10px;font:700 22px 'Space Grotesk',sans-serif;letter-spacing:-.7px;min-width:190px}
+.brand-mark{display:grid;place-items:center;width:34px;height:34px;border-radius:12px;background:linear-gradient(135deg,#a99cff,#6653e8);color:white;font:700 23px 'Space Grotesk',sans-serif}
+.search{display:flex;align-items:center;gap:10px;background:#151720;border:1px solid var(--line);border-radius:13px;padding:0 14px;height:42px;max-width:520px;width:100%;color:var(--muted)}
+.search input{border:0;outline:0;background:transparent;color:var(--text);width:100%;min-width:0}
+.top-actions{margin-left:auto;display:flex;align-items:center;gap:12px}
+.profile-chip{width:38px;height:38px;display:grid;place-items:center;border-radius:50%;background:#292541;border:1px solid #51468b;color:#d8d2ff;font-weight:700}
+.app-layout{max-width:1400px;margin:auto;padding:28px 4vw;display:grid;grid-template-columns:245px minmax(0,1fr);gap:28px}
+.sidebar{min-width:0}
+.profile-card,.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);overflow:hidden}
+.profile-card{text-align:center;padding:0 16px 18px}
+.cover{height:72px;margin:0 -16px 0;background:radial-gradient(ellipse at 70% 10%,#8b7cff88,transparent 40%),linear-gradient(120deg,#27213f,#171a2a)}
+.avatar{width:42px;height:42px;flex:0 0 auto;border-radius:50%;display:grid;place-items:center;background:#292541;border:1px solid #51468b;color:#d8d2ff;font-size:12px;font-weight:700}
+.avatar.large{width:66px;height:66px;margin:-33px auto 10px;border:4px solid var(--panel);font-size:16px}
+.profile-card h2{font-size:15px;margin:5px 0}.profile-card p{font-size:12px;color:var(--muted);margin:0}
+.profile-stats{display:flex;justify-content:center;gap:18px;margin-top:17px;color:var(--muted);font-size:11px}
+.profile-stats b{display:block;color:var(--text);font-size:14px}
+.side-nav{display:grid;gap:5px;margin:20px 0}
+.side-link{display:flex;align-items:center;gap:13px;padding:12px 14px;border-radius:12px;color:var(--muted);font-size:14px;transition:.2s}
+.side-link span{font-size:19px;width:22px;text-align:center}
+.side-link:hover,.side-link.selected{background:#211e36;color:#d8d2ff}
+.sidebar-note{border-top:1px solid var(--line);padding:17px 5px;color:var(--muted);font-size:12px}
+.sidebar-note small{display:block;margin:8px 0 0 16px;line-height:1.5}
+.status-dot{display:inline-block;width:7px;height:7px;background:#69d9a0;border-radius:50%;margin-right:8px}
+.main-content{min-width:0;max-width:900px;width:100%;margin:0 auto}
+.page-heading{padding:16px 3px 20px}
+.eyebrow{font-size:10px;letter-spacing:1.8px;color:#a79cff;font-weight:700;margin:0 0 9px}
+.page-heading h1{font:600 28px 'Space Grotesk',sans-serif;letter-spacing:-1px;margin:0 0 6px}
+.muted{color:var(--muted)}
+.fine-print{font-size:10px;color:var(--muted);line-height:1.6;margin-top:12px}
+
+/* Real chat layout */
+.chat-app{height:min(720px,calc(100vh - 200px));min-height:520px;display:grid;grid-template-columns:300px minmax(0,1fr);overflow:hidden;border-radius:var(--radius);border:1px solid var(--line);background:var(--panel)}
+.chat-sidebar{background:#101219;border-right:1px solid var(--line);display:flex;flex-direction:column;min-width:0}
+.chat-sidebar-head{padding:18px 16px 12px}
+.chat-sidebar-head h2{font:600 18px 'Space Grotesk',sans-serif;margin:0 0 12px}
+.chat-search{width:100%;padding:10px 12px;border-radius:11px;border:1px solid var(--line);background:#191b25;color:var(--text);outline:none}
+.chat-search:focus{border-color:var(--accent)}
+.chat-contacts{overflow:auto;padding:6px 8px 12px;flex:1}
+.chat-contact{width:100%;border:0;background:transparent;color:inherit;display:flex;align-items:center;gap:10px;text-align:left;padding:11px 9px;border-radius:13px;cursor:pointer}
+.chat-contact:hover,.chat-contact.active{background:#24213a}
+.chat-contact .avatar{width:42px;height:42px;font-size:11px;position:relative}
+.contact-copy{min-width:0;flex:1}
+.contact-name-line{display:flex;justify-content:space-between;gap:6px}
+.contact-name-line b{font-size:12px}
+.contact-name-line time{font-size:9px;color:var(--muted);white-space:nowrap}
+.contact-preview{font-size:10px;color:var(--muted);display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:4px}
+.unread-count{font-size:9px;background:#6c5ce7;color:white;border-radius:10px;padding:2px 6px}
+.new-chat-button{margin:0 14px 14px;padding:10px;border:1px solid #403a65;border-radius:11px;background:#211e36;color:#d4ceff;font-size:12px;font-weight:700}
+.chat-main{display:flex;flex-direction:column;min-width:0;background:linear-gradient(180deg,#12141b,#0e1016)}
+.chat-header{display:flex;align-items:center;gap:12px;padding:14px 18px;border-bottom:1px solid var(--line);background:#12141bf2}
+.chat-header .avatar{width:40px;height:40px}
+.chat-header-copy{flex:1;min-width:0}
+.chat-header-copy b{font-size:13px}
+.chat-header-copy small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.chat-messages{flex:1;overflow:auto;padding:14px 18px 16px;display:flex;flex-direction:column;gap:10px}
+.message-row{display:flex;flex-direction:column;align-items:flex-start;max-width:75%}
+.message-row.sent-row{align-self:flex-end;align-items:flex-end}
+.bubble{padding:10px 13px;border-radius:15px 15px 15px 5px;background:#232632;border:1px solid #2b2e3c;font-size:13px;max-width:100%;line-height:1.5;overflow-wrap:anywhere}
+.bubble.sent{border-radius:15px 15px 5px 15px;background:linear-gradient(135deg,#6555d4,#5144b3);border-color:#6a5bd0}
+.bubble img,.bubble video{max-width:min(280px,70vw);border-radius:10px;display:block;margin-top:6px}
+.bubble video{max-height:220px}
+.message-meta{font-size:9px;color:#858b9e;margin:4px 4px 0}
+.chat-compose{padding:12px 14px 14px;border-top:1px solid var(--line);display:flex;gap:8px;align-items:flex-end;background:#12141b}
+.chat-compose textarea{resize:none;min-height:42px;max-height:100px;flex:1;border:1px solid var(--line);border-radius:13px;background:#1a1c26;color:var(--text);padding:11px 12px;outline:none;font:13px 'DM Sans',sans-serif}
+.chat-compose textarea:focus{border-color:var(--accent)}
+.attach-btn,.send-button{width:42px;height:42px;border:0;border-radius:12px;display:grid;place-items:center;flex-shrink:0}
+.attach-btn{background:#1a1c27;border:1px solid var(--line);color:#c7c9d6;font-size:18px}
+.attach-btn:hover{background:#24213a;color:#d8d2ff}
+.send-button{background:#6c5ce7;color:#fff;font-size:16px}
+.send-button:disabled{opacity:.5;cursor:not-allowed}
+.chat-empty{margin:auto;text-align:center;padding:30px 20px;color:var(--muted);font-size:13px;line-height:1.6}
+.chat-empty h3{font:600 16px 'Space Grotesk',sans-serif;color:var(--text);margin:0 0 8px}
+.chat-footnote{font-size:9px;color:#777d8f;text-align:center;padding:0 10px 10px}
+.preview-bar{padding:8px 14px;background:#1a1c26;border-top:1px solid var(--line);display:flex;align-items:center;gap:10px}
+.preview-bar img,.preview-bar video{height:48px;border-radius:8px}
+.preview-bar button{margin-left:auto;background:none;border:0;color:#ffb9c4;font-size:12px}
+.setup-banner{padding:14px 16px;background:#211e36;border:1px solid #403a65;border-radius:14px;margin-bottom:16px;font-size:12px;line-height:1.55;color:#d4ceff}
+.setup-banner code{background:#0e1016;padding:2px 6px;border-radius:6px;font-size:11px}
+@media(max-width:850px){.app-layout{grid-template-columns:190px minmax(0,1fr);gap:16px;padding:20px 3vw}.brand{min-width:auto}.topbar{gap:15px;padding:0 3vw}.sidebar-note{display:none}}
+@media(max-width:720px){.chat-app{height:calc(100vh - 160px);min-height:480px;grid-template-columns:1fr}.chat-sidebar{display:none}.chat-app.show-list .chat-sidebar{display:flex}.chat-app.show-list .chat-main{display:none}.chat-header{padding:12px}.message-row{max-width:88%}}
+  </style>
+</head>
+<body>
+<header class="topbar">
+  <a class="brand" href="home.html"><span class="brand-mark">s</span><span>socially</span></a>
+  <label class="search"><span>⌕</span><input id="globalSearch" type="search" placeholder="Search this page" aria-label="Search"></label>
+  <div class="top-actions"><a class="profile-chip" href="settings.html" title="Settings" data-my-avatar="true">JD</a></div>
+</header>
+
+<main class="app-layout">
+  <aside class="sidebar">
+    <div class="profile-card">
+      <div class="cover" id="sidebarCover" data-my-cover></div>
+      <div class="avatar large" id="sidebarAvatar" data-my-avatar="true">JD</div>
+      <h2 id="sidebarName">Your Name</h2>
+      <p id="sidebarHandle">@yourusername</p>
+      <div class="profile-stats"><span><b>0</b> Posts</span><span><b>0</b> Followers</span></div>
+    </div>
+    <nav class="side-nav">
+      <a class="side-link" href="home.html"><span>⌂</span>Home</a>
+      <a class="side-link" href="video.html"><span>▷</span>Video</a>
+      <a class="side-link" href="people.html"><span>♙</span>People</a>
+      <a class="side-link" href="menu.html"><span>☷</span>Menu</a>
+      <a class="side-link selected" href="chat.html"><span>✉</span>Chat</a>
+      <a class="side-link" href="settings.html"><span>⚙</span>Settings</a>
+      <a class="side-link" href="logout.html"><span>↪</span>Log out</a>
+    </nav>
+    <div class="sidebar-note"><span class="status-dot"></span> Real messaging<small>Powered by Supabase when connected.</small></div>
+  </aside>
+
+  <section class="main-content">
+    <div class="page-heading">
+      <p class="eyebrow">YOUR CONVERSATIONS</p>
+      <h1>Messages</h1>
+      <p class="muted">Real chats with pictures & videos. No demo contacts.</p>
+    </div>
+
+    <div id="setupBanner" class="setup-banner" hidden>
+      To make chat fully real, add your Supabase Project URL and anon key below (same values as login/home), then run the SQL in README. Until then you’ll see a gentle setup message.
+    </div>
+
+    <div class="chat-app panel" id="chatApp">
+      <aside class="chat-sidebar">
+        <div class="chat-sidebar-head">
+          <h2>Chats</h2>
+          <input class="chat-search" id="chatSearch" type="search" placeholder="Search people…" aria-label="Search conversations">
+        </div>
+        <div id="chatContacts" class="chat-contacts"></div>
+        <button class="new-chat-button" id="newChat">＋ Start conversation</button>
+      </aside>
+
+      <section class="chat-main">
+        <header class="chat-header" id="chatHeader" hidden>
+          <button class="attach-btn" id="backToList" style="display:none;margin-right:4px" title="Back">←</button>
+          <div class="avatar" id="activeAvatar">?</div>
+          <div class="chat-header-copy">
+            <b id="activeName">Select a chat</b>
+            <small id="activeStatus">—</small>
+          </div>
+        </header>
+
+        <div id="chatMessages" class="chat-messages">
+          <div class="chat-empty" id="emptyState">
+            <h3>No conversation yet</h3>
+            <p>Start a new chat or wait for someone to message you.<br>Pictures and videos work once Supabase is connected.</p>
+          </div>
+        </div>
+
+        <div id="previewBar" class="preview-bar" hidden>
+          <div id="previewThumb"></div>
+          <span id="previewLabel" style="font-size:11px;color:var(--muted)"></span>
+          <button type="button" id="clearPreview">Remove</button>
+        </div>
+
+        <form id="chatForm" class="chat-compose" hidden>
+          <button type="button" class="attach-btn" id="attachBtn" title="Photo or video">📎</button>
+          <input type="file" id="fileInput" accept="image/*,video/*" hidden>
+          <textarea id="chatInput" placeholder="Write a message…" rows="1" maxlength="2000"></textarea>
+          <button class="send-button" type="submit" id="sendBtn" aria-label="Send">➤</button>
+        </form>
+        <div class="chat-footnote">Enter to send · Shift+Enter for new line · Media via 📎</div>
+      </section>
+    </div>
+
+    <p class="fine-print">Requires Supabase Auth + the chat tables & storage bucket described in README. Messages and media are real once configured — they appear for every signed-in user on the same project.</p>
+  </section>
+</main>
+
+<script src="shared-upgrade.js"></script>
+<script>
+/* ─── CONFIG: paste the same values you use on login.html / home.html ─── */
+const SUPABASE_URL = "YOUR_SUPABASE_PROJECT_URL";
+const SUPABASE_ANON_KEY = "YOUR_SUPABASE_ANON_KEY";
+
+const isConfigured = SUPABASE_URL.startsWith("https://") && !SUPABASE_URL.includes("YOUR_") &&
+                     SUPABASE_ANON_KEY && !SUPABASE_ANON_KEY.includes("YOUR_");
+
+let supabase = null;
+let currentUser = null;
+let conversations = [];       // { id, other_user, last_message, updated_at }
+let activeConvId = null;
+let messages = [];
+let pendingFile = null;       // File object ready to upload
+let channel = null;
+
+const $ = (id) => document.getElementById(id);
+
+function initials(name) {
+  return (name || "?").trim().split(/\s+/).slice(0, 2).map(x => x[0] || "").join("").toUpperCase() || "?";
+}
+
+function timeAgo(iso) {
+  if (!iso) return "";
+  const d = new Date(iso);
+  const diff = (Date.now() - d.getTime()) / 1000;
+  if (diff < 60) return "Now";
+  if (diff < 3600) return Math.floor(diff / 60) + "m";
+  if (diff < 86400) return Math.floor(diff / 3600) + "h";
+  return d.toLocaleDateString(undefined, { month: "short", day: "numeric" });
+}
+
+async function init() {
+  if (!isConfigured || !window.supabase) {
+    $("setupBanner").hidden = false;
+    $("setupBanner").textContent = "Chat is ready for real use. Open README.md and add your Supabase Project URL + anon key here (and on login/home), then run the SQL. Until then the interface stays empty and safe.";
+    renderContacts();
+    return;
+  }
+
+  supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    $("setupBanner").hidden = false;
+    $("setupBanner").innerHTML = "Please <a href='login.html' style='color:#a99cff'>log in</a> first. Real chat only works for signed-in accounts.";
+    renderContacts();
+    return;
+  }
+  currentUser = session.user;
+
+  // Apply display name from metadata or local profile
+  const meta = currentUser.user_metadata || {};
+  const display = meta.full_name || meta.username || currentUser.email?.split("@")[0] || "You";
+  if (window.SociallyUpgrade) {
+    const p = window.SociallyUpgrade.readProfile();
+    p.displayName = display;
+    p.username = meta.username || p.username;
+    p.initials = initials(display);
+    window.SociallyUpgrade.saveProfile(p);
+    window.SociallyUpgrade.applyProfileEverywhere();
+  }
+
+  await loadConversations();
+  subscribeRealtime();
+}
+
+async function loadConversations() {
+  // Get conversations the current user is in
+  const { data: parts, error } = await supabase
+    .from("conversation_participants")
+    .select("conversation_id, conversations(id, updated_at)")
+    .eq("user_id", currentUser.id);
+
+  if (error) {
+    console.error(error);
+    $("setupBanner").hidden = false;
+    $("setupBanner").textContent = "Could not load chats. Make sure you ran the SQL from README (tables + RLS). " + error.message;
+    return;
+  }
+
+  const convIds = (parts || []).map(p => p.conversation_id);
+  if (!convIds.length) {
+    conversations = [];
+    renderContacts();
+    return;
+  }
+
+  // Fetch last message + other participant for each
+  const list = [];
+  for (const cid of convIds) {
+    const { data: others } = await supabase
+      .from("conversation_participants")
+      .select("user_id, profiles(display_name, username, avatar_color)")
+      .eq("conversation_id", cid)
+      .neq("user_id", currentUser.id);
+
+    const other = others?.[0];
+    const profile = other?.profiles;
+    const name = profile?.display_name || profile?.username || "Someone";
+
+    const { data: lastMsgs } = await supabase
+      .from("messages")
+      .select("body, media_type, created_at, sender_id")
+      .eq("conversation_id", cid)
+      .order("created_at", { ascending: false })
+      .limit(1);
+
+    const last = lastMsgs?.[0];
+    list.push({
+      id: cid,
+      otherId: other?.user_id,
+      name,
+      initials: initials(name),
+      color: profile?.avatar_color || "#292541",
+      preview: last ? (last.media_type === "image" ? "📷 Photo" : last.media_type === "video" ? "🎬 Video" : (last.body || "")) : "No messages yet",
+      time: last?.created_at || null,
+      updated: last?.created_at
+    });
+  }
+
+  list.sort((a, b) => new Date(b.updated || 0) - new Date(a.updated || 0));
+  conversations = list;
+  renderContacts();
+}
+
+function renderContacts() {
+  const box = $("chatContacts");
+  const term = ($("chatSearch").value || "").trim().toLowerCase();
+  box.innerHTML = "";
+
+  const filtered = conversations.filter(c =>
+    !term || c.name.toLowerCase().includes(term) || (c.preview || "").toLowerCase().includes(term)
+  );
+
+  if (!filtered.length) {
+    box.innerHTML = `<div class="chat-empty" style="padding:24px 12px"><p>No conversations yet.<br>Tap “Start conversation” to begin.</p></div>`;
+    return;
+  }
+
+  filtered.forEach(c => {
+    const btn = document.createElement("button");
+    btn.className = "chat-contact" + (c.id === activeConvId ? " active" : "");
+    btn.type = "button";
+    btn.innerHTML = `
+      <div class="avatar" style="background:${c.color}">${c.initials}</div>
+      <div class="contact-copy">
+        <div class="contact-name-line"><b>${escapeHtml(c.name)}</b><time>${timeAgo(c.time)}</time></div>
+        <span class="contact-preview">${escapeHtml(c.preview)}</span>
+      </div>`;
+    btn.addEventListener("click", () => openConversation(c.id));
+    box.append(btn);
+  });
+}
+
+function escapeHtml(str) {
+  return String(str || "").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+
+async function openConversation(convId) {
+  activeConvId = convId;
+  const conv = conversations.find(c => c.id === convId);
+  $("chatHeader").hidden = false;
+  $("chatForm").hidden = false;
+  $("emptyState")?.remove();
+
+  if (conv) {
+    $("activeAvatar").textContent = conv.initials;
+    $("activeAvatar").style.background = conv.color;
+    $("activeName").textContent = conv.name;
+    $("activeStatus").textContent = "Online · real chat";
+  }
+
+  // Mobile: show main
+  $("chatApp").classList.remove("show-list");
+
+  await loadMessages(convId);
+  renderContacts();
+}
+
+async function loadMessages(convId) {
+  const { data, error } = await supabase
+    .from("messages")
+    .select("id, body, media_url, media_type, sender_id, created_at")
+    .eq("conversation_id", convId)
+    .order("created_at", { ascending: true });
+
+  if (error) {
+    console.error(error);
+    return;
+  }
+  messages = data || [];
+  renderMessages();
+}
+
+function renderMessages() {
+  const box = $("chatMessages");
+  box.innerHTML = "";
+  if (!messages.length) {
+    box.innerHTML = `<div class="chat-empty"><h3>Say hello</h3><p>This is the start of your conversation.</p></div>`;
+    return;
+  }
+  messages.forEach(m => {
+    const sent = m.sender_id === currentUser.id;
+    const row = document.createElement("div");
+    row.className = "message-row" + (sent ? " sent-row" : "");
+    let content = "";
+    if (m.body) content += escapeHtml(m.body);
+    if (m.media_url) {
+      if (m.media_type === "video") {
+        content += `<video src="${m.media_url}" controls playsinline></video>`;
+      } else {
+        content += `<img src="${m.media_url}" alt="Shared photo" loading="lazy">`;
+      }
+    }
+    const time = new Date(m.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    row.innerHTML = `
+      <div class="bubble${sent ? " sent" : ""}">${content || " "}</div>
+      <div class="message-meta">${sent ? "You · " : ""}${time}</div>`;
+    box.append(row);
+  });
+  box.scrollTop = box.scrollHeight;
+}
+
+async function startNewConversation() {
+  if (!currentUser) {
+    alert("Please log in first.");
+    return;
+  }
+  const username = prompt("Enter the username of the person you want to chat with:");
+  if (!username || !username.trim()) return;
+  const clean = username.trim().replace(/^@/, "");
+
+  // Look up profile by username
+  const { data: profiles, error } = await supabase
+    .from("profiles")
+    .select("id, display_name, username, avatar_color")
+    .ilike("username", clean)
+    .limit(1);
+
+  if (error || !profiles?.length) {
+    alert("No user found with that username. They need to have signed up and set a username.");
+    return;
+  }
+  const other = profiles[0];
+  if (other.id === currentUser.id) {
+    alert("You can’t start a chat with yourself.");
+    return;
+  }
+
+  // Check if conversation already exists
+  const { data: existing } = await supabase
+    .from("conversation_participants")
+    .select("conversation_id")
+    .eq("user_id", currentUser.id);
+
+  let found = null;
+  if (existing?.length) {
+    for (const e of existing) {
+      const { data: check } = await supabase
+        .from("conversation_participants")
+        .select("user_id")
+        .eq("conversation_id", e.conversation_id)
+        .eq("user_id", other.id);
+      if (check?.length) { found = e.conversation_id; break; }
+    }
+  }
+
+  if (found) {
+    await openConversation(found);
+    return;
+  }
+
+  // Create new conversation
+  const { data: conv, error: cErr } = await supabase
+    .from("conversations")
+    .insert({})
+    .select("id")
+    .single();
+  if (cErr) {
+    alert("Could not create conversation: " + cErr.message);
+    return;
+  }
+
+  const { error: pErr } = await supabase.from("conversation_participants").insert([
+    { conversation_id: conv.id, user_id: currentUser.id },
+    { conversation_id: conv.id, user_id: other.id }
+  ]);
+  if (pErr) {
+    alert("Could not add participants: " + pErr.message);
+    return;
+  }
+
+  await loadConversations();
+  await openConversation(conv.id);
+}
+
+async function sendMessage(text) {
+  if (!activeConvId || !currentUser) return;
+  const body = (text || "").trim();
+  if (!body && !pendingFile) return;
+
+  $("sendBtn").disabled = true;
+  let media_url = null;
+  let media_type = null;
+
+  try {
+    if (pendingFile) {
+      const ext = pendingFile.name.split(".").pop() || "bin";
+      const path = `${currentUser.id}/${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("chat-media")
+        .upload(path, pendingFile, { cacheControl: "3600", upsert: false });
+      if (upErr) throw upErr;
+
+      const { data: pub } = supabase.storage.from("chat-media").getPublicUrl(path);
+      media_url = pub.publicUrl;
+      media_type = pendingFile.type.startsWith("video/") ? "video" : "image";
+    }
+
+    const { error } = await supabase.from("messages").insert({
+      conversation_id: activeConvId,
+      sender_id: currentUser.id,
+      body: body || null,
+      media_url,
+      media_type
+    });
+    if (error) throw error;
+
+    // Clear input & preview
+    $("chatInput").value = "";
+    clearPreview();
+    await loadMessages(activeConvId);
+    await loadConversations();
+  } catch (err) {
+    console.error(err);
+    alert("Could not send: " + (err.message || "unknown error"));
+  } finally {
+    $("sendBtn").disabled = false;
+    $("chatInput").focus();
+  }
+}
+
+function clearPreview() {
+  pendingFile = null;
+  $("previewBar").hidden = true;
+  $("previewThumb").innerHTML = "";
+  $("fileInput").value = "";
+}
+
+function subscribeRealtime() {
+  if (channel) supabase.removeChannel(channel);
+  channel = supabase.channel("chat-realtime")
+    .on("postgres_changes", { event: "INSERT", schema: "public", table: "messages" }, payload => {
+      if (payload.new.conversation_id === activeConvId) {
+        messages.push(payload.new);
+        renderMessages();
+      }
+      loadConversations();
+    })
+    .subscribe();
+}
+
+/* ─── Events ─── */
+$("newChat").addEventListener("click", startNewConversation);
+$("chatSearch").addEventListener("input", renderContacts);
+
+$("chatForm").addEventListener("submit", e => {
+  e.preventDefault();
+  sendMessage($("chatInput").value);
+});
+
+$("chatInput").addEventListener("keydown", e => {
+  if (e.key === "Enter" && !e.shiftKey) {
+    e.preventDefault();
+    $("chatForm").requestSubmit();
+  }
+});
+
+$("attachBtn").addEventListener("click", () => $("fileInput").click());
+$("fileInput").addEventListener("change", () => {
+  const file = $("fileInput").files?.[0];
+  if (!file) return;
+  if (file.size > 15 * 1024 * 1024) {
+    alert("Please keep files under 15 MB for this demo-friendly limit.");
+    return;
+  }
+  pendingFile = file;
+  $("previewBar").hidden = false;
+  $("previewLabel").textContent = file.name + " (" + Math.round(file.size / 1024) + " KB)";
+  const thumb = $("previewThumb");
+  thumb.innerHTML = "";
+  if (file.type.startsWith("image/")) {
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(file);
+    thumb.append(img);
+  } else {
+    const vid = document.createElement("video");
+    vid.src = URL.createObjectURL(file);
+    vid.muted = true;
+    thumb.append(vid);
+  }
+});
+
+$("clearPreview").addEventListener("click", clearPreview);
+
+$("backToList")?.addEventListener("click", () => {
+  $("chatApp").classList.add("show-list");
+});
+
+// Show back button on small screens
+if (window.matchMedia("(max-width:720px)").matches) {
+  $("backToList").style.display = "grid";
+  $("chatApp").classList.add("show-list");
+}
+
+init();
+</script>
+</body>
+</html>

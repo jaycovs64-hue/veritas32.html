@@ -1,0 +1,198 @@
+/* Soft interactive upgrades for Socially */
+
+/* Sidebar toggle button */
+.sidebar-toggle {
+  display: none;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  background: #1a1c27;
+  color: #c7c9d6;
+  border-radius: 12px;
+  font-size: 18px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: 0.2s;
+}
+.sidebar-toggle:hover {
+  background: #24213a;
+  color: #d8d2ff;
+  border-color: #51468b;
+}
+
+/* Interactive sidebar polish */
+.side-link {
+  position: relative;
+  overflow: hidden;
+}
+.side-link::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: transparent;
+  border-radius: 0 4px 4px 0;
+  transition: 0.25s;
+}
+.side-link:hover::before,
+.side-link.selected::before {
+  background: linear-gradient(180deg, #a99cff, #6c5ce7);
+}
+.side-link.soft-glow {
+  box-shadow: 0 0 20px #6c5ce722;
+}
+.side-link.selected {
+  background: #211e36;
+  color: #d8d2ff;
+}
+
+/* Profile card upgrades */
+.profile-card {
+  position: relative;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.profile-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 12px 32px #0004;
+}
+.cover {
+  transition: background 0.4s ease;
+  position: relative;
+}
+.avatar {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.avatar:hover,
+.profile-chip:hover {
+  transform: scale(1.06);
+  box-shadow: 0 0 0 3px #8b7cff44;
+}
+.avatar.large {
+  border: 4px solid var(--panel);
+  box-shadow: 0 4px 16px #0005;
+}
+
+/* Mobile sidebar drawer */
+@media (max-width: 720px) {
+  .sidebar-toggle {
+    display: grid;
+  }
+  .app-layout > .sidebar {
+    display: block !important;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    max-width: 85vw;
+    z-index: 40;
+    background: #0e1016;
+    border-right: 1px solid var(--line);
+    padding: 20px 16px;
+    transform: translateX(-105%);
+    transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+    overflow-y: auto;
+    box-shadow: 8px 0 40px #0008;
+  }
+  body.sidebar-open .app-layout > .sidebar {
+    transform: translateX(0);
+  }
+  body.sidebar-open::after {
+    content: "";
+    position: fixed;
+    inset: 0;
+    background: #0008;
+    z-index: 35;
+    backdrop-filter: blur(4px);
+  }
+  .app-layout {
+    display: block;
+    padding: 16px 14px;
+  }
+}
+
+/* Gentle page transitions */
+.main-content {
+  animation: softFade 0.35s ease;
+}
+@keyframes softFade {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}
+
+/* Avatar color picker dots */
+.color-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+.color-swatch {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: 0.2s;
+}
+.color-swatch:hover,
+.color-swatch.active {
+  border-color: #fff;
+  transform: scale(1.15);
+  box-shadow: 0 0 0 2px #8b7cff;
+}
+
+/* Cover style cards */
+.cover-options {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-top: 10px;
+}
+.cover-option {
+  height: 52px;
+  border-radius: 12px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: 0.2s;
+  position: relative;
+  overflow: hidden;
+}
+.cover-option:hover,
+.cover-option.active {
+  border-color: #a99cff;
+  transform: scale(1.03);
+}
+.cover-option span {
+  position: absolute;
+  bottom: 4px;
+  left: 6px;
+  font-size: 9px;
+  background: #0007;
+  padding: 2px 6px;
+  border-radius: 6px;
+  color: #fff;
+}
+
+/* Soft notice */
+.notice {
+  transition: opacity 0.3s;
+}
+
+/* Stronger active state for avatar color & cover */
+.color-swatch.active {
+  border-color: #fff !important;
+  box-shadow: 0 0 0 3px #8b7cff, 0 0 12px #8b7cff66;
+  transform: scale(1.18);
+}
+.cover-option.active {
+  border-color: #a99cff !important;
+  box-shadow: 0 0 0 2px #8b7cff88;
+}
+.avatar[data-my-avatar="true"],
+.profile-chip[data-my-avatar="true"] {
+  transition: background 0.25s ease, transform 0.2s ease;
+}
